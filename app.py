@@ -8,6 +8,27 @@ import base64
 import requests
 import streamlit as st
 
+NICHES = [
+    "Saúde & Bem-estar",
+    "Educação & Capacitação",
+    "Negócios & Empreendedorismo",
+    "Moda & Beleza",
+    "Alimentação & Gastronomia",
+    "Casa & Decoração",
+    "Tecnologia & Digital",
+    "Imóveis",
+    "Automotivo",
+    "Turismo & Viagens",
+    "Serviços Profissionais",
+    "Pet & Animais",
+    "Infantil & Família",
+    "Finanças & Investimentos",
+    "Religião & Espiritualidade",
+    "Esportes & Lazer",
+    "Arte & Entretenimento",
+    "Agronegócio",
+]
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Gerenciar Clientes · Dash Digital",
@@ -289,6 +310,16 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
             avatar = st.text_input("Emoji do cliente", value=e.get("avatar", "📊"),
                                     help="Um emoji representativo. Ex: 🎓 👩‍💼 📚 🏋️")
 
+        nicho_atual = e.get("nicho", "")
+        nicho_opts  = ["(Não definido)"] + NICHES
+        nicho_idx   = nicho_opts.index(nicho_atual) if nicho_atual in nicho_opts else 0
+        nicho = st.selectbox(
+            "Nicho principal",
+            options=nicho_opts,
+            index=nicho_idx,
+            help="Usado pelo Gerador de Copies para pré-selecionar o nicho automaticamente.",
+        )
+
         # ── 2. IDs das Contas Meta ────────────────────────────────────────────
         st.markdown('<div class="form-section">📱 IDs das Contas Meta</div>', unsafe_allow_html=True)
         st.caption(
@@ -481,6 +512,7 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
         "competitors":         competitors.strip(),
         "goals":               final_goals,
         "observations":        observations.strip(),
+        "nicho":               nicho if nicho != "(Não definido)" else "",
         "active":              True,
     }
 
