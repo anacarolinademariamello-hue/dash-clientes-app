@@ -29,6 +29,27 @@ NICHES = [
     "Agronegócio",
 ]
 
+SUB_NICHES = {
+    "Saúde & Bem-estar":           ["Nutrição e Emagrecimento","Personal Trainer","Academia / Fitness","Yoga e Pilates","Psicologia e Terapia","Medicina Estética","Odontologia","Suplementos e Nutracêuticos","Medicina Integrativa","Fisioterapia","Quiropraxia e Acupuntura","Massoterapia e Spa","Saúde Mental e Mindfulness","Dermatologia"],
+    "Educação & Capacitação":      ["Cursos Online / Infoprodutos","Idiomas","Concursos Públicos","Pós-graduação / MBA","Reforço Escolar","Cursos Profissionalizantes","Coaching e Mentoria","Programação e TI","Design e Criatividade","Música e Artes","Culinária e Gastronomia","Finanças Pessoais / Investimentos"],
+    "Negócios & Empreendedorismo": ["Consultoria Empresarial","Marketing Digital para Empresas","Gestão e Liderança","Franquias","E-commerce e Dropshipping","Negócios Locais","Startups e Inovação","Contabilidade e Finanças Empresariais","Recursos Humanos","Logística e Supply Chain"],
+    "Moda & Beleza":               ["Moda Feminina","Moda Masculina","Moda Plus Size","Moda Fitness","Cosméticos e Skincare","Cabelos (Salão / Produtos)","Nail Art / Unhas","Perfumaria","Joias e Acessórios","Moda Infantil","Moda Praia","Lingerie e Moda Íntima"],
+    "Alimentação & Gastronomia":   ["Restaurante","Delivery / iFood","Confeitaria e Doces","Cafeteria","Alimentação Saudável","Marmitex / Quentinha","Bebidas Especiais","Food Truck","Pizzaria","Hamburgueria","Padaria e Açougue","Catering e Eventos"],
+    "Casa & Decoração":            ["Decoração de Interiores","Reforma e Construção","Móveis Planejados","Objetos e Artesanato","Jardinagem e Paisagismo","Limpeza e Organização","Eletrodomésticos e Utilidades","Iluminação","Pisos e Revestimentos","Portas e Janelas"],
+    "Tecnologia & Digital":        ["Aplicativos / SaaS","E-commerce / Loja Virtual","Desenvolvimento Web e Apps","Segurança Digital e VPN","Hardware e Gadgets","Games e Entretenimento Digital","Inteligência Artificial","Automação e Produtividade","Hospedagem e Domínios","Marketing Digital / Ferramentas"],
+    "Imóveis":                     ["Construtora / Incorporadora","Imobiliária","Imóveis para Investimento","Aluguel por Temporada","Loteamentos e Terrenos","Imóveis Comerciais","Financiamento Imobiliário","Decoração e Reforma para Revenda"],
+    "Automotivo":                  ["Concessionária / Revenda","Oficina e Mecânica","Acessórios Automotivos","Seguros de Veículo","Som e Elétrica Automotiva","Estética Automotiva","Locação de Veículos","Moto e Scooter"],
+    "Turismo & Viagens":           ["Agência de Viagens","Pacotes Nacionais","Pacotes Internacionais","Turismo de Aventura","Cruzeiros","Turismo de Luxo","Turismo Religioso","Ecoturismo","Aluguel de Temporada","Passagens Aéreas"],
+    "Serviços Profissionais":      ["Advocacia e Direito","Contabilidade","Arquitetura e Engenharia","Consultoria de RH","Segurança Privada","Seguros em Geral","Assessoria Financeira","Psicologia Organizacional","Tradução e Idiomas","Limpeza e Conservação"],
+    "Pet & Animais":               ["Pet Shop","Veterinária e Clínica","Ração e Petiscos","Adestramento","Hotel e Day Care para Pets","Banho e Tosa","Produtos Naturais para Pets","Roupinhas e Acessórios","Seguros Pet"],
+    "Infantil & Família":          ["Escola e Creche","Brinquedos e Jogos","Roupas Infantis","Festas e Eventos Infantis","Pediatria e Saúde Infantil","Cursos para Pais","Produtos para Bebê","Alimentação Infantil","Recreação e Lazer"],
+    "Finanças & Investimentos":    ["Investimentos (Ações, FIIs, Cripto)","Educação Financeira","Crédito e Empréstimos","Seguros de Vida e Previdência","Planejamento Financeiro","Consórcio","Câmbio e Remessas","Cartões e Benefícios"],
+    "Religião & Espiritualidade":  ["Igreja e Ministério","Retiros Espirituais","Produtos Religiosos","Terapias Holísticas","Astrologia e Tarot","Meditação e Mindfulness","Livros e Literatura Espiritual"],
+    "Esportes & Lazer":            ["Academias e Esportes Coletivos","Esportes de Aventura e Outdoor","Ciclismo e Corrida","Natação e Aquáticos","Artes Marciais","Equipamentos Esportivos","Clube de Campo / Social","eSports e Games","Pesca e Caça"],
+    "Arte & Entretenimento":       ["Fotografia e Vídeo","Música (Aulas, Shows, Equipamentos)","Cinema e Streaming","Teatro e Performance","Arte Visual e Pintura","Design Gráfico","Podcasts e Conteúdo Digital","Jogos de Tabuleiro"],
+    "Agronegócio":                 ["Insumos e Defensivos","Máquinas e Implementos","Consultoria Agrícola","Pecuária e Veterinária Rural","Tecnologia para o Campo","Crédito Rural","Orgânicos e Sustentabilidade"],
+}
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Gerenciar Clientes · Dash Digital",
@@ -320,6 +341,16 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
             help="Usado pelo Gerador de Copies para pré-selecionar o nicho automaticamente.",
         )
 
+        sub_nicho_atual = e.get("sub_nicho", "")
+        sub_nicho_opts  = ["(Não definido)"] + SUB_NICHES.get(nicho, []) if nicho != "(Não definido)" else ["(Selecione o nicho primeiro)"]
+        sub_nicho_idx   = sub_nicho_opts.index(sub_nicho_atual) if sub_nicho_atual in sub_nicho_opts else 0
+        sub_nicho = st.selectbox(
+            "Sub-nicho",
+            options=sub_nicho_opts,
+            index=sub_nicho_idx,
+            help="Especialidade dentro do nicho. Pré-selecionado automaticamente no Gerador de Copies.",
+        )
+
         # ── 2. IDs das Contas Meta ────────────────────────────────────────────
         st.markdown('<div class="form-section">📱 IDs das Contas Meta</div>', unsafe_allow_html=True)
         st.caption(
@@ -513,6 +544,7 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
         "goals":               final_goals,
         "observations":        observations.strip(),
         "nicho":               nicho if nicho != "(Não definido)" else "",
+        "sub_nicho":           sub_nicho if sub_nicho not in ("(Não definido)", "(Selecione o nicho primeiro)") else "",
         "active":              True,
     }
 
