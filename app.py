@@ -12,6 +12,7 @@ NICHES = [
     "Saúde & Bem-estar",
     "Educação & Capacitação",
     "Negócios & Empreendedorismo",
+    "Marketing & Publicidade",
     "Moda & Beleza",
     "Alimentação & Gastronomia",
     "Casa & Decoração",
@@ -47,6 +48,7 @@ SUB_NICHES = {
     "Religião & Espiritualidade":  ["Igreja e Ministério","Retiros Espirituais","Produtos Religiosos","Terapias Holísticas","Astrologia e Tarot","Meditação e Mindfulness","Livros e Literatura Espiritual"],
     "Esportes & Lazer":            ["Academias e Esportes Coletivos","Esportes de Aventura e Outdoor","Ciclismo e Corrida","Natação e Aquáticos","Artes Marciais","Equipamentos Esportivos","Clube de Campo / Social","eSports e Games","Pesca e Caça"],
     "Arte & Entretenimento":       ["Fotografia e Vídeo","Música (Aulas, Shows, Equipamentos)","Cinema e Streaming","Teatro e Performance","Arte Visual e Pintura","Design Gráfico","Podcasts e Conteúdo Digital","Jogos de Tabuleiro"],
+    "Marketing & Publicidade":     ["Gestão de Tráfego Pago","Social Media e Conteúdo","SEO e Marketing de Busca","E-mail Marketing","Marketing de Influência","Branding e Identidade Visual","Inbound Marketing","Copywriting e Redação Publicitária","Performance e Analytics","Agência de Marketing Digital","Marketing de Afiliados","Relações Públicas e Assessoria"],
     "Agronegócio":                 ["Insumos e Defensivos","Máquinas e Implementos","Consultoria Agrícola","Pecuária e Veterinária Rural","Tecnologia para o Campo","Crédito Rural","Orgânicos e Sustentabilidade"],
 }
 
@@ -352,10 +354,51 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
     if isinstance(goals, str):
         goals = json.loads(goals)
 
+    # ── Nicho, Sub-nicho e Público-alvo — FORA do form (reativos) ───────────────
+    st.markdown('<div class="form-section">👤 Identificação</div>', unsafe_allow_html=True)
+
+    cn1, cn2 = st.columns(2)
+    with cn1:
+        nicho_atual = e.get("nicho", "")
+        nicho_opts  = ["(Não definido)"] + NICHES
+        nicho_idx   = nicho_opts.index(nicho_atual) if nicho_atual in nicho_opts else 0
+        nicho = st.selectbox(
+            "Nicho principal",
+            options=nicho_opts,
+            index=nicho_idx,
+            key=f"_nicho_{form_key}",
+            help="Usado pelo Gerador de Copies para pré-selecionar o nicho automaticamente.",
+        )
+    with cn2:
+        sub_nicho_atual = e.get("sub_nicho", "")
+        if nicho != "(Não definido)":
+            sub_nicho_opts = ["(Não definido)"] + SUB_NICHES.get(nicho, [])
+        else:
+            sub_nicho_opts = ["(Selecione o nicho primeiro)"]
+            if sub_nicho_atual and sub_nicho_atual not in sub_nicho_opts:
+                sub_nicho_opts = [sub_nicho_atual] + sub_nicho_opts
+        sub_nicho_idx = sub_nicho_opts.index(sub_nicho_atual) if sub_nicho_atual in sub_nicho_opts else 0
+        sub_nicho = st.selectbox(
+            "Sub-nicho",
+            options=sub_nicho_opts,
+            index=sub_nicho_idx,
+            key=f"_sub_nicho_{form_key}",
+            help="Especialidade dentro do nicho. Pré-selecionado automaticamente no Gerador de Copies.",
+        )
+
+    publico_alvo_val = st.text_area(
+        "Público-alvo",
+        value=e.get("publico_alvo", ""),
+        height=75,
+        key=f"_publico_alvo_{form_key}",
+        placeholder="Descreva o público ideal do cliente. "
+                    "Ex: Mulheres de 25–45 anos, interessadas em saúde, renda B/C, buscam emagrecer...",
+        help="Usado pelo Gerador de Copies para personalizar linguagem e argumentos.",
+    )
+
     with st.form(key=f"form_{form_key}"):
 
         # ── 1. Identificação ──────────────────────────────────────────────────
-        st.markdown('<div class="form-section">👤 Identificação</div>', unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
             name   = st.text_input("Nome do cliente *", value=e.get("name", ""),
@@ -371,32 +414,6 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
             )
             avatar = st.text_input("Emoji do cliente", value=e.get("avatar", "📊"),
                                     help="Um emoji representativo. Ex: 🎓 👩‍💼 📚 🏋️")
-
-        nicho_atual = e.get("nicho", "")
-        nicho_opts  = ["(Não definido)"] + NICHES
-        nicho_idx   = nicho_opts.index(nicho_atual) if nicho_atual in nicho_opts else 0
-        nicho = st.selectbox(
-            "Nicho principal",
-            options=nicho_opts,
-            index=nicho_idx,
-            help="Usado pelo Gerador de Copies para pré-selecionar o nicho automaticamente.",
-        )
-
-        sub_nicho_atual = e.get("sub_nicho", "")
-        if nicho != "(Não definido)":
-            sub_nicho_opts = ["(Não definido)"] + SUB_NICHES.get(nicho, [])
-        else:
-            # Nicho não definido — preserva sub_nicho existente para não apagar dados
-            sub_nicho_opts = ["(Selecione o nicho primeiro)"]
-            if sub_nicho_atual and sub_nicho_atual not in sub_nicho_opts:
-                sub_nicho_opts = [sub_nicho_atual] + sub_nicho_opts
-        sub_nicho_idx = sub_nicho_opts.index(sub_nicho_atual) if sub_nicho_atual in sub_nicho_opts else 0
-        sub_nicho = st.selectbox(
-            "Sub-nicho",
-            options=sub_nicho_opts,
-            index=sub_nicho_idx,
-            help="Especialidade dentro do nicho. Pré-selecionado automaticamente no Gerador de Copies.",
-        )
 
         # ── 2. IDs das Contas Meta ────────────────────────────────────────────
         st.markdown('<div class="form-section">📱 IDs das Contas Meta</div>', unsafe_allow_html=True)
@@ -574,6 +591,11 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
         "taxa_conversao_minima": _g(g_conv),
     }.items() if v is not None}
 
+    # Lê nicho/sub_nicho/publico_alvo do session_state (definidos fora do form)
+    _nicho     = st.session_state.get(f"_nicho_{form_key}", nicho)
+    _sub_nicho = st.session_state.get(f"_sub_nicho_{form_key}", sub_nicho)
+    _pub_alvo  = st.session_state.get(f"_publico_alvo_{form_key}", publico_alvo_val)
+
     return {
         "key":                 slug.strip().lower().replace(" ", "-"),
         "name":                name.strip(),
@@ -590,8 +612,9 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
         "competitors":         competitors.strip(),
         "goals":               final_goals,
         "observations":        observations.strip(),
-        "nicho":               nicho if nicho != "(Não definido)" else "",
-        "sub_nicho":           sub_nicho if sub_nicho not in ("(Não definido)", "(Selecione o nicho primeiro)") else "",
+        "nicho":               _nicho if _nicho != "(Não definido)" else "",
+        "sub_nicho":           _sub_nicho if _sub_nicho not in ("(Não definido)", "(Selecione o nicho primeiro)") else "",
+        "publico_alvo":        (_pub_alvo or "").strip(),
         "active":              True,
     }
 
@@ -619,6 +642,9 @@ with st.sidebar:
     if st.button("➕ Cadastrar novo cliente", use_container_width=True):
         st.session_state.cl_new     = True
         st.session_state.cl_editing = None
+        # Limpa session_state do form "new" para começar em branco
+        for _sk in ["_nicho_new", "_sub_nicho_new", "_publico_alvo_new"]:
+            st.session_state.pop(_sk, None)
         st.rerun()
 
     st.markdown("---")
@@ -720,6 +746,8 @@ else:
                 'padding:2px 9px;border-radius:10px;font-weight:700;margin-left:6px;">INATIVO</span>'
             )
             badges = []
+            if cl.get("nicho"):                          badges.append(f"📌 {cl['nicho']}")
+            if cl.get("publico_alvo", "").strip():       badges.append("👥 Público-alvo")
             if cl.get("goals"):                          badges.append("🎯 Metas")
             if cl.get("tone_of_voice", "").strip():      badges.append("🗣️ Tom de voz")
             if cl.get("observations", "").strip():       badges.append("📝 Obs.")
@@ -741,6 +769,10 @@ else:
                 if st.button("✏️", key=f"ed_{cl['key']}", help="Editar"):
                     st.session_state.cl_editing = cl["key"]
                     st.session_state.cl_new = False
+                    # Limpa session_state para carregar dados atuais do BD
+                    _fk = f"edit_{cl['key']}"
+                    for _sk in [f"_nicho_{_fk}", f"_sub_nicho_{_fk}", f"_publico_alvo_{_fk}"]:
+                        st.session_state.pop(_sk, None)
             with b2:
                 if active:
                     if st.button("🔕", key=f"da_{cl['key']}", help="Desativar"):
