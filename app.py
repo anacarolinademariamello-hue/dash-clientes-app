@@ -416,23 +416,28 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
             avatar = st.text_input("Emoji do cliente", value=e.get("avatar", "📊"),
                                     help="Um emoji representativo. Ex: 🎓 👩‍💼 📚 🏋️")
 
-        # ── 2. IDs das Contas Meta ────────────────────────────────────────────
-        st.markdown('<div class="form-section">📱 IDs das Contas Meta</div>', unsafe_allow_html=True)
+        # ── 2. IDs das Plataformas ────────────────────────────────────────────
+        st.markdown('<div class="form-section">📱 IDs das Plataformas</div>', unsafe_allow_html=True)
         st.caption(
             "**Instagram Business ID:** Meta Business Suite → Configurações → "
             "Contas do Instagram → selecione a conta → ID da conta.  \n"
             "**Meta Ads Account ID:** Gerenciador de Anúncios → a URL contém "
-            "'act_NÚMERO' — use só o número, sem o 'act_'."
+            "'act_NÚMERO' — use só o número, sem o 'act_'.  \n"
+            "**Google Ads Customer ID:** Google Ads → canto superior → número no formato 123-456-7890."
         )
-        cm1, cm2 = st.columns(2)
+        cm1, cm2, cm3 = st.columns(3)
         with cm1:
-            ig_id = st.text_input("ID da Conta Instagram Business *",
+            ig_id = st.text_input("ID da Conta Instagram Business",
                                    value=e.get("instagram_id", ""),
                                    placeholder="Ex: 17841479657213211")
         with cm2:
-            fb_id = st.text_input("ID da Conta Meta Ads *",
+            fb_id = st.text_input("ID da Conta Meta Ads",
                                    value=e.get("facebook_account_id", ""),
                                    placeholder="Ex: 1429787371828065")
+        with cm3:
+            gads_id = st.text_input("ID da Conta Google Ads",
+                                     value=e.get("google_ads_account_id", ""),
+                                     placeholder="Ex: 123-456-7890")
 
         # ── 3. Apresentação no Relatório ──────────────────────────────────────
         st.markdown('<div class="form-section">📄 Apresentação no Relatório</div>', unsafe_allow_html=True)
@@ -499,8 +504,8 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
                             unsafe_allow_html=True,
                         )
 
-        # ── 6. Metas de Tráfego Pago ──────────────────────────────────────────
-        st.markdown('<div class="form-section">🎯 Metas de Tráfego Pago</div>', unsafe_allow_html=True)
+        # ── 6. Metas Meta Ads ─────────────────────────────────────────────────
+        st.markdown('<div class="form-section">🎯 Metas — Meta Ads</div>', unsafe_allow_html=True)
         st.caption("Defina os limites para cada métrica. Use 0 para não definir uma meta.")
         mg1, mg2, mg3 = st.columns(3)
         with mg1:
@@ -534,7 +539,41 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
                                       min_value=0.0, step=0.1, format="%.2f",
                                       value=float(goals.get("taxa_conversao_minima") or 0))
 
-        # ── 7. Observações ────────────────────────────────────────────────────
+        # ── 7. Metas Google Ads ───────────────────────────────────────────────
+        st.markdown('<div class="form-section">🔵 Metas — Google Ads</div>', unsafe_allow_html=True)
+        st.caption("Preencha apenas para clientes que rodam Google Ads. Use 0 para não definir.")
+        gg1, gg2, gg3, gg4 = st.columns(4)
+        with gg1:
+            g_gads_ctr  = st.number_input("CTR alvo (%)",
+                                           min_value=0.0, step=0.1, format="%.2f",
+                                           value=float(goals.get("gads_ctr_alvo") or 0),
+                                           help="Benchmark Google Ads busca: 3–5%")
+        with gg2:
+            g_gads_cpa  = st.number_input("CPA alvo (R$)",
+                                           min_value=0.0, step=1.0, format="%.2f",
+                                           value=float(goals.get("gads_cpa_alvo") or 0),
+                                           help="Custo por conversão desejado")
+        with gg3:
+            g_gads_roas = st.number_input("ROAS alvo (×)",
+                                           min_value=0.0, step=0.5, format="%.1f",
+                                           value=float(goals.get("gads_roas_alvo") or 0),
+                                           help="Retorno sobre investimento mínimo")
+        with gg4:
+            g_gads_cpc  = st.number_input("CPC máximo (R$)",
+                                           min_value=0.0, step=0.1, format="%.2f",
+                                           value=float(goals.get("gads_cpc_maximo") or 0),
+                                           help="Custo por clique máximo aceito")
+
+        # ── 8. Contrato ───────────────────────────────────────────────────────
+        st.markdown('<div class="form-section">💼 Contrato</div>', unsafe_allow_html=True)
+        monthly_fee = st.number_input(
+            "Valor mensal do cliente (R$)",
+            min_value=0.0, step=50.0, format="%.2f",
+            value=float(e.get("monthly_fee") or 0),
+            help="Quanto este cliente paga à Dash Digital por mês. Usado para análises internas.",
+        )
+
+        # ── 9. Observações ────────────────────────────────────────────────────
         st.markdown('<div class="form-section">📝 Observações</div>', unsafe_allow_html=True)
         observations = st.text_area(
             "Observações sobre o cliente",
@@ -555,8 +594,6 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
     if not name.strip():   errs.append("Nome do cliente")
     if not handle.strip(): errs.append("Handle do Instagram")
     if not slug.strip():   errs.append("Identificador interno")
-    if not ig_id.strip():  errs.append("ID da Conta Instagram")
-    if not fb_id.strip():  errs.append("ID da Conta Meta Ads")
     if errs:
         st.error(f"Campos obrigatórios não preenchidos: **{', '.join(errs)}**")
         return None
@@ -590,6 +627,10 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
         "cpc_maximo":            _g(g_cpc),
         "roas_minimo":           _g(g_roas),
         "taxa_conversao_minima": _g(g_conv),
+        "gads_ctr_alvo":         _g(g_gads_ctr),
+        "gads_cpa_alvo":         _g(g_gads_cpa),
+        "gads_roas_alvo":        _g(g_gads_roas),
+        "gads_cpc_maximo":       _g(g_gads_cpc),
     }.items() if v is not None}
 
     # Lê nicho/sub_nicho/publico_alvo do session_state (definidos fora do form)
@@ -598,25 +639,27 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
     _pub_alvo  = st.session_state.get(f"_publico_alvo_{form_key}", publico_alvo_val)
 
     return {
-        "key":                 slug.strip().lower().replace(" ", "-"),
-        "name":                name.strip(),
-        "handle":              handle.strip(),
-        "instagram_id":        ig_id.strip(),
-        "facebook_account_id": fb_id.strip(),
-        "bio":                 bio.strip(),
-        "tags":                [t.strip() for t in hashtags.split(",") if t.strip()],
-        "avatar":              avatar.strip() or "📊",
-        "footer":              footer.strip() or
-                               f"Relatório gerado para <strong>{name.strip()}</strong> por Dash Digital.",
-        "colors":              final_colors,
-        "tone_of_voice":       tov_final,
-        "competitors":         competitors.strip(),
-        "goals":               final_goals,
-        "observations":        observations.strip(),
-        "nicho":               _nicho if _nicho != "(Não definido)" else "",
-        "sub_nicho":           _sub_nicho if _sub_nicho not in ("(Não definido)", "(Selecione o nicho primeiro)") else "",
-        "publico_alvo":        (_pub_alvo or "").strip(),
-        "active":              True,
+        "key":                    slug.strip().lower().replace(" ", "-"),
+        "name":                   name.strip(),
+        "handle":                 handle.strip(),
+        "instagram_id":           ig_id.strip(),
+        "facebook_account_id":    fb_id.strip(),
+        "google_ads_account_id":  gads_id.strip(),
+        "bio":                    bio.strip(),
+        "tags":                   [t.strip() for t in hashtags.split(",") if t.strip()],
+        "avatar":                 avatar.strip() or "📊",
+        "footer":                 footer.strip() or
+                                  f"Relatório gerado para <strong>{name.strip()}</strong> por Dash Digital.",
+        "colors":                 final_colors,
+        "tone_of_voice":          tov_final,
+        "competitors":            competitors.strip(),
+        "goals":                  final_goals,
+        "observations":           observations.strip(),
+        "nicho":                  _nicho if _nicho != "(Não definido)" else "",
+        "sub_nicho":              _sub_nicho if _sub_nicho not in ("(Não definido)", "(Selecione o nicho primeiro)") else "",
+        "publico_alvo":           (_pub_alvo or "").strip(),
+        "monthly_fee":            monthly_fee if monthly_fee > 0 else None,
+        "active":                 True,
     }
 
 
@@ -747,19 +790,30 @@ else:
                 'padding:2px 9px;border-radius:10px;font-weight:700;margin-left:6px;">INATIVO</span>'
             )
             badges = []
-            if cl.get("nicho"):                          badges.append(f"📌 {cl['nicho']}")
-            if cl.get("publico_alvo", "").strip():       badges.append("👥 Público-alvo")
-            if cl.get("goals"):                          badges.append("🎯 Metas")
-            if cl.get("tone_of_voice", "").strip():      badges.append("🗣️ Tom de voz")
-            if cl.get("observations", "").strip():       badges.append("📝 Obs.")
+            if cl.get("nicho"):                              badges.append(f"📌 {cl['nicho']}")
+            if cl.get("publico_alvo", "").strip():           badges.append("👥 Público-alvo")
+            if cl.get("goals"):                              badges.append("🎯 Metas")
+            if cl.get("tone_of_voice", "").strip():          badges.append("🗣️ Tom de voz")
+            if cl.get("observations", "").strip():           badges.append("📝 Obs.")
+            if cl.get("google_ads_account_id", "").strip():  badges.append("🔵 Google Ads")
+            fee = cl.get("monthly_fee")
+            if fee and float(fee) > 0:                       badges.append(f"💼 R$ {float(fee):,.0f}/mês")
             badge_str = ("  ·  " + "  ·  ".join(badges)) if badges else ""
+
+            ig_line = cl.get("instagram_id", "")
+            gads_line = cl.get("google_ads_account_id", "")
+            accounts_str = f'IG: <code style="font-size:.78rem;">{ig_line}</code>' if ig_line else ""
+            if gads_line:
+                sep = "  ·  " if accounts_str else ""
+                accounts_str += f'{sep}GAds: <code style="font-size:.78rem;">{gads_line}</code>'
 
             st.markdown(
                 f'<div style="opacity:{opacity};padding:4px 0;">'
                 f'<strong style="font-size:1rem;color:#003f7c;">{cl["name"]}</strong>'
                 f'{status_badge}<br>'
                 f'<span style="font-size:.85rem;color:#6b7280;">{cl.get("handle","")}'
-                f' · IG: <code style="font-size:.78rem;">{cl.get("instagram_id","")}</code></span>'
+                + (f'  ·  {accounts_str}' if accounts_str else "")
+                + '</span>'
                 + (f'<br><span style="font-size:.75rem;color:#9ca3af;">{badge_str}</span>' if badges else "")
                 + '</div>',
                 unsafe_allow_html=True,
