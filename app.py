@@ -249,9 +249,10 @@ def save_client(data: dict) -> tuple[bool, str]:
         r = requests.post(
             _rest("clients"),
             headers={**_headers(), "Prefer": "resolution=merge-duplicates,return=minimal"},
+            params={"on_conflict": "key"},
             json=data, timeout=10,
         )
-        if r.status_code in (200, 201):
+        if r.status_code in (200, 201, 204):
             return True, f"✅ Cliente '{data['name']}' salvo com sucesso!"
         return False, f"Erro {r.status_code}: {r.text}"
     except Exception as e:
