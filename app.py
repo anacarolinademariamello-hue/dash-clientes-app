@@ -267,6 +267,47 @@ def toggle_active(key: str, active: bool) -> bool:
         return False
 
 
+# ── Tom de voz — histórico de versões ─────────────────────────────────────────
+
+def save_tov_version(client_key: str, client_name: str, content: str) -> bool:
+    """Salva uma versão do tom de voz na tabela tone_of_voice_history."""
+    if not _is_configured() or not content.strip():
+        return False
+    try:
+        r = requests.post(
+            _rest("tone_of_voice_history"),
+            headers={**_headers(), "Prefer": "return=minimal"},
+            json={"client_key": client_key, "client_name": client_name, "content": content.strip()},
+            timeout=10,
+        )
+        return r.status_code in (200, 201)
+    except Exception:
+        return False
+
+
+@st.cache_data(ttl=120)
+def load_tov_history(client_key: str) -> list[dict]:
+    """Carrega o histórico de versões do tom de voz de um cliente."""
+    if not _is_configured():
+        return []
+    try:
+        r = requests.get(
+            _rest("tone_of_voice_history"),
+            headers=_headers(),
+            params={
+                "client_key": f"eq.{client_key}",
+                "order":      "created_at.desc",
+                "limit":      "10",
+                "select":     "id,content,created_at",
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json()
+    except Exception:
+        return []
+
+
 # ── Helpers visuais ───────────────────────────────────────────────────────────
 def _rgba(hex_color: str, alpha: float) -> str:
     h = hex_color.lstrip("#")
@@ -342,8 +383,14 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
         )
 
         sub_nicho_atual = e.get("sub_nicho", "")
-        sub_nicho_opts  = ["(Não definido)"] + SUB_NICHES.get(nicho, []) if nicho != "(Não definido)" else ["(Selecione o nicho primeiro)"]
-        sub_nicho_idx   = sub_nicho_opts.index(sub_nicho_atual) if sub_nicho_atual in sub_nicho_opts else 0
+        if nicho != "(Não definido)":
+            sub_nicho_opts = ["(Não definido)"] + SUB_NICHES.get(nicho, [])
+        else:
+            # Nicho não definido — preserva sub_nicho existente para não apagar dados
+            sub_nicho_opts = ["(Selecione o nicho primeiro)"]
+            if sub_nicho_atual and sub_nicho_atual not in sub_nicho_opts:
+                sub_nicho_opts = [sub_nicho_atual] + sub_nicho_opts
+        sub_nicho_idx = sub_nicho_opts.index(sub_nicho_atual) if sub_nicho_atual in sub_nicho_opts else 0
         sub_nicho = st.selectbox(
             "Sub-nicho",
             options=sub_nicho_opts,
@@ -632,6 +679,9 @@ if st.session_state.cl_new:
         if result is not None:
             ok, msg = save_client(result)
             if ok:
+                # Salva versão inicial do tom de voz se preenchido
+                if result.get("tone_of_voice", "").strip():
+                    save_tov_version(result["key"], result["name"], result["tone_of_voice"])
                 st.success(msg)
                 st.session_state.cl_new = False
                 load_clients.clear()
@@ -705,8 +755,16 @@ else:
             with st.expander(f"✏️ Editando: {cl['name']}", expanded=True):
                 result = client_form(existing=cl, form_key=f"edit_{cl['key']}")
                 if result is not None:
+                    # ── Detecta mudança no tom de voz e versiona ──────────────
+                    old_tov = (cl.get("tone_of_voice") or "").strip()
+                    new_tov = (result.get("tone_of_voice") or "").strip()
+                    tov_changed = new_tov and new_tov != old_tov
+
                     ok, msg = save_client(result)
                     if ok:
+                        if tov_changed:
+                            save_tov_version(cl["key"], cl["name"], new_tov)
+                            load_tov_history.clear()
                         st.success(msg)
                         st.session_state.cl_editing = None
                         load_clients.clear(); st.rerun()
@@ -714,6 +772,39 @@ else:
                         st.error(msg)
                 if st.button("✕ Cancelar edição", key=f"ce_{cl['key']}"):
                     st.session_state.cl_editing = None; st.rerun()
+
+        # ── Histórico do Tom de Voz ───────────────────────────────────────────
+        tov_history = load_tov_history(cl["key"])
+        if tov_history:
+            with st.expander(f"📜 Histórico do Tom de Voz — {cl['name']} ({len(tov_history)} versão{'ões' if len(tov_history) > 1 else ''})", expanded=False):
+                for i, entry in enumerate(tov_history):
+                    created = entry.get("created_at", "")
+                    # Formata data: "2025-05-18T14:30:00+00:00" → "18/05/2025 às 14:30"
+                    try:
+                        from datetime import datetime as _dt
+                        dt = _dt.fromisoformat(created.replace("Z", "+00:00"))
+                        date_label = dt.strftime("%d/%m/%Y às %H:%M")
+                    except Exception:
+                        date_label = created[:16] if created else "—"
+
+                    version_label = "Versão atual" if i == 0 else f"Versão {len(tov_history) - i}"
+                    badge_color   = "#d1fae5" if i == 0 else "#f3f4f6"
+                    badge_text    = "#065f46" if i == 0 else "#374151"
+
+                    st.markdown(
+                        f'<div style="border:1px solid #e5e7eb;border-radius:10px;'
+                        f'padding:12px 16px;margin-bottom:10px;background:#fafafa;">'
+                        f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+                        f'<span style="background:{badge_color};color:{badge_text};font-size:.72rem;'
+                        f'font-weight:700;padding:2px 10px;border-radius:8px;">{version_label}</span>'
+                        f'<span style="font-size:.72rem;color:#9ca3af;">{date_label}</span>'
+                        f'</div>'
+                        f'<div style="font-size:.82rem;color:#374151;white-space:pre-wrap;line-height:1.6;">'
+                        f'{entry.get("content","")[:600]}'
+                        f'{"…" if len(entry.get("content","")) > 600 else ""}'
+                        f'</div></div>',
+                        unsafe_allow_html=True,
+                    )
 
         st.divider()
 
