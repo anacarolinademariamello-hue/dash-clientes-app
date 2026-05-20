@@ -439,6 +439,18 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
                                      value=e.get("google_ads_account_id", ""),
                                      placeholder="Ex: 123-456-7890")
 
+        cm4, cm5 = st.columns(2)
+        with cm4:
+            youtube_id = st.text_input("Canal do YouTube (handle ou ID)",
+                                        value=e.get("youtube_id", ""),
+                                        placeholder="Ex: @nomecanal ou UCxxxxxxxxxxxxx",
+                                        help="Deixe vazio se o cliente não tem YouTube ativo.")
+        with cm5:
+            tiktok_id = st.text_input("Perfil do TikTok (handle)",
+                                       value=e.get("tiktok_id", ""),
+                                       placeholder="Ex: @nomecanal",
+                                       help="Deixe vazio se o cliente não tem TikTok ativo.")
+
         # ── 3. Apresentação no Relatório ──────────────────────────────────────
         st.markdown('<div class="form-section">📄 Apresentação no Relatório</div>', unsafe_allow_html=True)
         bio = st.text_area(
@@ -566,12 +578,21 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
 
         # ── 8. Contrato ───────────────────────────────────────────────────────
         st.markdown('<div class="form-section">💼 Contrato</div>', unsafe_allow_html=True)
-        monthly_fee = st.number_input(
-            "Valor mensal do cliente (R$)",
-            min_value=0.0, step=50.0, format="%.2f",
-            value=float(e.get("monthly_fee") or 0),
-            help="Quanto este cliente paga à Dash Digital por mês. Usado para análises internas.",
-        )
+        ct1, ct2 = st.columns(2)
+        with ct1:
+            monthly_fee = st.number_input(
+                "Valor mensal do cliente (R$)",
+                min_value=0.0, step=50.0, format="%.2f",
+                value=float(e.get("monthly_fee") or 0),
+                help="Quanto este cliente paga à Dash Digital por mês. Usado para análises internas.",
+            )
+        with ct2:
+            posts_organicos_mes = st.number_input(
+                "Posts orgânicos contratados / mês",
+                min_value=0, step=1,
+                value=int(e.get("posts_organicos_mes") or 0),
+                help="Quantidade de posts orgânicos incluídos no contrato. Usado para montar o Calendário Editorial.",
+            )
 
         # ── 9. Observações ────────────────────────────────────────────────────
         st.markdown('<div class="form-section">📝 Observações</div>', unsafe_allow_html=True)
@@ -645,6 +666,8 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
         "instagram_id":           ig_id.strip(),
         "facebook_account_id":    fb_id.strip(),
         "google_ads_account_id":  gads_id.strip(),
+        "youtube_id":             youtube_id.strip(),
+        "tiktok_id":              tiktok_id.strip(),
         "bio":                    bio.strip(),
         "tags":                   [t.strip() for t in hashtags.split(",") if t.strip()],
         "avatar":                 avatar.strip() or "📊",
@@ -659,6 +682,7 @@ def client_form(existing: dict = None, form_key: str = "new") -> dict | None:
         "sub_nicho":              _sub_nicho if _sub_nicho not in ("(Não definido)", "(Selecione o nicho primeiro)") else "",
         "publico_alvo":           (_pub_alvo or "").strip(),
         "monthly_fee":            monthly_fee if monthly_fee > 0 else None,
+        "posts_organicos_mes":    posts_organicos_mes if posts_organicos_mes > 0 else None,
         "active":                 True,
     }
 
@@ -796,8 +820,12 @@ else:
             if cl.get("tone_of_voice", "").strip():          badges.append("🗣️ Tom de voz")
             if cl.get("observations", "").strip():           badges.append("📝 Obs.")
             if cl.get("google_ads_account_id", "").strip():  badges.append("🔵 Google Ads")
+            if cl.get("youtube_id", "").strip():              badges.append("▶️ YouTube")
+            if cl.get("tiktok_id", "").strip():               badges.append("🎵 TikTok")
             fee = cl.get("monthly_fee")
-            if fee and float(fee) > 0:                       badges.append(f"💼 R$ {float(fee):,.0f}/mês")
+            if fee and float(fee) > 0:                        badges.append(f"💼 R$ {float(fee):,.0f}/mês")
+            posts = cl.get("posts_organicos_mes")
+            if posts and int(posts) > 0:                      badges.append(f"📅 {int(posts)} posts/mês")
             badge_str = ("  ·  " + "  ·  ".join(badges)) if badges else ""
 
             ig_line = cl.get("instagram_id", "")
